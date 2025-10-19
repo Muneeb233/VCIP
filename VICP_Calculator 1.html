@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VCIP Calculator — Professional Edition</title>
+<style>
+  :root{
+    --bg:#f7fbff;
+    --card:#ffffff;
+    --accent:#1e66c8;
+    --muted:#6b7280;
+    --radius:14px;
+    --gap:16px;
+    --shadow:0 6px 18px rgba(20,30,60,0.06);
+    font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+  }
+  body{
+    margin:0;
+    background:linear-gradient(180deg,var(--bg),#ffffff);
+    color:#111827;
+    padding:28px;
+  }
+  header{
+    display:flex;
+    gap:18px;
+    align-items:center;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .brand{
+    background:var(--card);
+    padding:14px 18px;
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    display:flex;
+    gap:12px;
+    align-items:center;
+  }
+  .logo{
+    width:46px;height:46px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent),#4fb3ff);
+    display:flex;align-items:center;justify-content:center;
+    color:white;font-weight:700;font-size:20px;
+  }
+  .title h1{margin:0;font-size:18px}
+  .title p{margin:0;color:var(--muted);font-size:13px}
+  .controls{
+    display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:18px;
+  }
+  .inputCard{
+    background:var(--card);
+    padding:12px 14px;
+    border-radius:10px;
+    box-shadow:var(--shadow);
+    min-width:210px;
+  }
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  input[type="number"]{
+    width:100%;padding:8px 10px;border-radius:8px;border:1px solid #e6eef9;font-size:15px;outline:none;box-sizing:border-box;
+  }
+  .actions{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+  button{
+    background:var(--accent);color:white;border:0;
+    padding:9px 12px;border-radius:10px;cursor:pointer;font-weight:600;
+    box-shadow:0 6px 14px rgba(30,102,200,0.14);
+  }
+  button.secondary{
+    background:transparent;color:var(--accent);
+    border:1px solid rgba(30,102,200,0.12);
+    box-shadow:none;font-weight:600;
+  }
+  main{width:100%;}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+    gap:var(--gap);
+    align-items:start;
+  }
+  @media(min-width:1200px){
+    .grid{grid-template-columns:repeat(5,1fr);}
+  }
+  .card{
+    background:var(--card);
+    padding:14px;
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    border:1px solid rgba(15,23,42,0.04);
+    transition:transform .2s ease,box-shadow .2s ease;
+  }
+  .card:hover{
+    transform:translateY(-4px);
+    box-shadow:0 8px 22px rgba(30,102,200,0.15);
+  }
+  .card h3{margin:0 0 6px 0;font-size:15px;color:var(--accent)}
+  .small{font-size:12px;color:var(--muted)}
+  .row{display:flex;justify-content:space-between;align-items:center;margin:8px 0;}
+  .bigNum{font-weight:700;font-size:16px}
+  .footerNote{margin-top:20px;color:var(--muted);font-size:13px}
+  @media print{body{padding:8px;background:white}.no-print{display:none}.card{box-shadow:none;border:1px solid #eee}}
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">VC</div>
+      <div class="title">
+        <h1>VCIP Calculator — No Cash Out</h1>
+        <p>Excel formulas replicated exactly — Light Professional Theme</p>
+      </div>
+    </div>
+    <div class="actions no-print" style="margin-left:auto">
+      <button id="resetBtn" class="secondary">Reset</button>
+      <button id="exportXls">Export to Excel</button>
+      <button id="exportPdf">Export to PDF</button>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="inputCard">
+      <label>Allocated VICP</label>
+      <input id="allocated" type="number" min="0" step="1" value="11000" />
+      <div class="small" style="margin-top:8px">Populates Allocated Units for every year.</div>
+    </div>
+    <div class="inputCard">
+      <label>USD Rate (PKR)</label>
+      <input id="usdRate" type="number" min="0" step="0.01" value="280" />
+    </div>
+  </div>
+
+  <main>
+    <div class="grid" id="cardsGrid"></div>
+    <div class="footerNote">
+      <strong>Formula Summary:</strong>
+      <ul>
+        <li>Allocated Units = Allocated VICP</li>
+        <li>Vested Units = Allocated Units × Vesting% / 100</li>
+        <li>Unlocked Units = Vested Units × Unlock% / 100</li>
+        <li>Cash (USD) = Unlocked Units × Unit Value</li>
+        <li>Cash (PKR) = Cash (USD) × USD Rate</li>
+      </ul>
+    </div>
+  </main>
+
+<script>
+(() => {
+  const rows = [
+    {year:2024, vestPct:25, unlockPct:5, unitValue:1.07},
+    {year:2025, vestPct:50, unlockPct:10, unitValue:1.14},
+    {year:2026, vestPct:75, unlockPct:15, unitValue:1.25},
+    {year:2027, vestPct:100, unlockPct:25, unitValue:1.35},
+    {year:2028, vestPct:100, unlockPct:35, unitValue:1.50},
+    {year:2029, vestPct:100, unlockPct:45, unitValue:1.60},
+    {year:2030, vestPct:100, unlockPct:55, unitValue:1.70},
+    {year:2031, vestPct:100, unlockPct:65, unitValue:1.80},
+    {year:2032, vestPct:100, unlockPct:80, unitValue:1.90},
+    {year:2033, vestPct:100, unlockPct:100, unitValue:2.00}
+  ];
+
+  const allocatedEl = document.getElementById('allocated');
+  const usdRateEl = document.getElementById('usdRate');
+  const grid = document.getElementById('cardsGrid');
+  const resetBtn = document.getElementById('resetBtn');
+  const exportXlsBtn = document.getElementById('exportXls');
+  const exportPdfBtn = document.getElementById('exportPdf');
+
+  function formatNumber(n){
+    if (!n) return '—';
+    if (Math.abs(n - Math.round(n)) < 0.000001) return new Intl.NumberFormat().format(Math.round(n));
+    return new Intl.NumberFormat(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+  }
+
+  function buildCards(){
+    grid.innerHTML='';
+    rows.forEach((r,idx)=>{
+      const card=document.createElement('div');
+      card.className='card';
+      card.innerHTML=`
+        <h3>${r.year}</h3>
+        <div class="small">Vesting: <strong>${r.vestPct}%</strong> • Unlocked: <strong>${r.unlockPct}%</strong></div>
+        <div class="row"><div class="small">Unit Value (USD)</div><div id="unit-${idx}" class="bigNum">${r.unitValue.toFixed(2)}</div></div>
+        <div class="row"><div class="small">Allocated Units</div><div id="alloc-${idx}" class="bigNum">—</div></div>
+        <div class="row"><div class="small">Vested Units</div><div id="vest-${idx}" class="bigNum">—</div></div>
+        <div class="row"><div class="small">Unlocked Units</div><div id="unlock-${idx}" class="bigNum">—</div></div>
+        <div class="row"><div class="small">Cash Value (USD)</div><div id="cashusd-${idx}" class="bigNum">—</div></div>
+        <div class="row"><div class="small">Cash Value (PKR)</div><div id="cashpkr-${idx}" class="bigNum">—</div></div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function recalc(){
+    const allocated=Number(allocatedEl.value)||0;
+    const usdRate=Number(usdRateEl.value)||0;
+    rows.forEach((r,idx)=>{
+      const alloc=allocated;
+      const vested=alloc*(r.vestPct/100);
+      const unlocked=vested*(r.unlockPct/100);
+      const cashUSD=unlocked*r.unitValue;
+      const cashPKR=cashUSD*usdRate;
+      document.getElementById(`alloc-${idx}`).textContent=formatNumber(alloc);
+      document.getElementById(`vest-${idx}`).textContent=formatNumber(vested);
+      document.getElementById(`unlock-${idx}`).textContent=formatNumber(unlocked);
+      document.getElementById(`cashusd-${idx}`).textContent=formatNumber(cashUSD);
+      document.getElementById(`cashpkr-${idx}`).textContent=formatNumber(cashPKR);
+    });
+  }
+
+  resetBtn.addEventListener('click',()=>{
+    allocatedEl.value=11000;usdRateEl.value=280;recalc();
+  });
+  allocatedEl.addEventListener('input',recalc);
+  usdRateEl.addEventListener('input',recalc);
+
+  // Export to Excel
+  exportXlsBtn.addEventListener('click',()=>{
+    const allocated=Number(allocatedEl.value)||0;
+    const usdRate=Number(usdRateEl.value)||0;
+    let html='<table><tr><th>Year</th><th>Vesting%</th><th>Unlock%</th><th>Unit Value</th><th>Allocated</th><th>Vested</th><th>Unlocked</th><th>Cash USD</th><th>Cash PKR</th></tr>';
+    rows.forEach(r=>{
+      const alloc=allocated,vest=alloc*(r.vestPct/100),unl=vest*(r.unlockPct/100);
+      const cashUSD=unl*r.unitValue,cashPKR=cashUSD*usdRate;
+      html+=`<tr><td>${r.year}</td><td>${r.vestPct}%</td><td>${r.unlockPct}%</td><td>${r.unitValue.toFixed(2)}</td>
+      <td>${alloc}</td><td>${vest.toFixed(2)}</td><td>${unl.toFixed(2)}</td><td>${cashUSD.toFixed(2)}</td><td>${cashPKR.toFixed(2)}</td></tr>`;
+    });
+    html+='</table>';
+    const blob=new Blob([html],{type:'application/vnd.ms-excel'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=`VCIP_Report_${new Date().toISOString().slice(0,10)}.xls`;a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Export to PDF with animations
+  exportPdfBtn.addEventListener('click',()=>{
+    const win=window.open('','_blank','width=900,height=700');
+    if(!win){alert('Popup blocked — allow popups');return;}
+
+    const allocated=allocatedEl.value;
+    const usdRate=usdRateEl.value;
+    const cards=Array.from(document.querySelectorAll('.card')).map(card=>card.innerHTML);
+
+    win.document.write(`
+      <html><head><meta charset="utf-8"/>
+      <title>VCIP Report</title>
+      <style>
+        body{font-family:"Segoe UI",Arial,sans-serif;background:#f8fbff;margin:0;padding:30px;color:#111;animation:fadeIn 0.8s ease-out;}
+        h2{color:#1e66c8;border-bottom:2px solid #1e66c8;padding-bottom:6px;}
+        .summary{background:#e8f0ff;border-left:4px solid #1e66c8;padding:10px 16px;border-radius:8px;margin-bottom:20px;}
+        .card{border:1px solid #d0e1fa;border-radius:12px;padding:12px 14px;margin-bottom:12px;background:#fff;
+          box-shadow:0 3px 6px rgba(0,0,0,0.05);animation:slideIn 0.6s ease both;}
+        .row{display:flex;justify-content:space-between;margin:6px 0;font-size:14px;}
+        .bar{height:8px;background:linear-gradient(90deg,#1e66c8,#4fb3ff);border-radius:5px;margin-top:6px;width:0%;
+          animation:growBar 1.2s ease forwards;}
+        .footer{margin-top:30px;font-size:13px;color:#555;text-align:center;}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes growBar{from{width:0%}to{width:100%}}
+      </style></head>
+      <body>
+      <h2>VCIP Calculator Report</h2>
+      <div class="summary"><strong>Allocated VICP:</strong> ${allocated} &nbsp;&nbsp; <strong>USD Rate:</strong> ${usdRate}</div>
+      ${cards.map(c=>`<div class='card'>${c}<div class='bar'></div></div>`).join('')}
+      <div class="footer">Generated by VCIP Calculator — ${new Date().toLocaleDateString()}</div>
+      </body></html>
+    `);
+    win.document.close();
+    setTimeout(()=>win.print(),900);
+  });
+
+  buildCards();
+  recalc();
+})();
+</script>
+</body>
+</html>
